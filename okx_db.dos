@@ -1,0 +1,32 @@
+// === AlphaBot 1 数据表结构 (基于您的最终方案) ===
+
+// 1. 定义 K 线数据表结构 (使用无歧义的数组)
+colName = [`Symbol, `DateTime, `Open, `High, `Low, `Close, `Volume]
+colType = [`SYMBOL, `DATETIME, `DOUBLE, `DOUBLE, `DOUBLE, `DOUBLE, `DOUBLE]
+
+// 2. 创建数据库
+dbPath = "dfs://okx_db"
+if(existsDatabase(dbPath)){
+    dropDatabase(dbPath)
+}
+db = database(dbPath, VALUE, 2020.01M..2025.12M,,engine='TSDB')
+
+pt = db.createPartitionedTable(
+    table=table(10000:0, colName, colType),
+    tableName="kline_1h",  // 必须是 `kline_1h`, 而不是 ["kline_1h",""]
+    partitionColumns=[`DateTime],
+    compressMethods={DateTime:"delta"},
+    sortColumns=[`Symbol, `DateTime]
+)
+go
+
+// 4. (可选) 创建一个流数据表
+// [!!! 关键修正 !!!] 采纳您的建议，添加 asynWrite=true 以启用持久化
+enableTableShareAndPersistence(
+    table=streamTable(10000:0, colName, colType),
+    tableName="kline_1h_stream",
+    asynWrite=true  // 启用异步持久化
+)
+go
+
+print("AlphaBot 1 数据库和 'kline_1h' 表创建成功！(最终采纳版)")
